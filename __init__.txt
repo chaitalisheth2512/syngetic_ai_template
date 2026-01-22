@@ -1,0 +1,37 @@
+import json
+import base64
+import logging
+import requests
+import azure.functions as func
+
+def main(req: func.HttpRequest) -> func.HttpResponse:
+    try:
+        envelope = req.get_json()
+
+        if "message" not in envelope:
+            return func.HttpResponse("No message", status_code=400)
+
+        # Decode Pub/Sub message
+        pubsub_message = envelope["message"]
+        data = base64.b64decode(pubsub_message["data"]).decode("utf-8")
+        payload = json.loads(data)
+
+        """
+        payload looks like:
+        {
+          "emailAddress": "user@gmail.com",
+          "historyId": "987654"
+        }
+        """
+
+        requests.post(
+            "https://abdiel-heliotypic-norah.ngrok-free.dev/gmail/push-event",
+            json=payload,
+            timeout=5
+        )
+
+        return func.HttpResponse("OK", status_code=200)
+
+    except Exception as e:
+        logging.exception(e)
+        return func.HttpResponse("Error", status_code=500)
